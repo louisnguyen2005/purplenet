@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/purplenet-core", "apps/purplenet-cli"]
+resolver = "2"
