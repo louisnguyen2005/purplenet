@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "purplenet-lab-draft",
+  "owner": "REPLACE_WITH_NETWORK_OWNER",
+  "environment": "purplenet-isolated",
+  "allowed_cidrs": ["10.77.0.0/24"],
+  "assets": [
+    { "id": "example-guest", "ip": "10.77.0.10" }
+  ],
+  "excluded_ips": ["10.77.0.1"],
+  "valid_from_unix": 0,
+  "valid_until_unix": 1,
+  "max_mock_events": 20,
+  "allowed_scenarios": ["example-observations"]
+}

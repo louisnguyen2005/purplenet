@@ -1,0 +1,9 @@
+<network>
+  <name>purplenet-isolated</name>
+  <bridge name='virbr77' stp='on' delay='0'/>
+  <ip address='10.77.0.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='10.77.0.100' end='10.77.0.199'/>
+    </dhcp>
+  </ip>
+</network>

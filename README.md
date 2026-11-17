@@ -15,6 +15,8 @@ Check the local audit chain with `cargo run -p purplenet-cli -- verify-audit`.
 
 The sample scope uses `192.0.2.0/24`, a documentation network. The generated approval is only a demo fixture and expires after one day. It does not authorize activity on a real network. Replace it with a reviewed scope and approval record only after the owner, environment, and lab boundary are decided.
 
+The proposed first lab uses libvirt and `10.77.0.0/24`. Its isolated-network XML and deliberately expired scope template are in [deploy/libvirt](deploy/libvirt/README.md). They are not activated by the CLI.
+
 ## Policy checks
 
 Before a mock run, PurpleNet checks schema versions, IDs, scope and approval windows, the exact scope digest, distinct approver and operator, allowed scenario, event cap, excluded target IPs, and CIDR membership. It rechecks before each synthetic event. Denials and completions are written to a hash-linked JSONL audit log.
