@@ -11,7 +11,7 @@ pub fn authorize(
     scope.validate()?;
     approval.validate()?;
     scenario.validate()?;
-    if actor.trim().is_empty() || actor == approval.approved_by {
+    if actor.trim().is_empty() || actor.len() > 120 || actor.trim() == approval.approved_by.trim() {
         bail!("operator must be named and distinct from approver");
     }
     if scope.id != approval.scope_id || scope.digest()? != approval.scope_sha256 {
@@ -146,6 +146,53 @@ mod scenario_binding_tests {
         approval.schema_version = 2;
         scenario.target_asset_id = "unknown".into();
         approval.scenario_sha256 = scenario.digest().unwrap();
+        assert!(authorize(&scope, &approval, &scenario, "operator", 150).is_err());
+    }
+}
+
+#[cfg(test)]
+mod boundary_tests {
+    use super::{authorize, tests::fixture};
+
+    #[test]
+    fn scope_and_approval_use_inclusive_start_exclusive_end() {
+        let (scope, approval, scenario) = fixture();
+        for (time, allowed) in [(99, false), (100, true), (199, true), (200, false)] {
+            assert_eq!(
+                authorize(&scope, &approval, &scenario, "operator", time).is_ok(),
+                allowed
+            );
+        }
+        let mut approval = approval;
+        approval.valid_from_unix = 120;
+        approval.valid_until_unix = 180;
+        for (time, allowed) in [(119, false), (120, true), (179, true), (180, false)] {
+            assert_eq!(
+                authorize(&scope, &approval, &scenario, "operator", time).is_ok(),
+                allowed
+            );
+        }
+    }
+
+    #[test]
+    fn operator_names_cannot_bypass_separation_with_padding() {
+        let (scope, mut approval, scenario) = fixture();
+        approval.approved_by = " approver ".into();
+        for actor in ["approver", " approver ", "", " "] {
+            assert!(authorize(&scope, &approval, &scenario, actor, 150).is_err());
+        }
+        assert!(authorize(&scope, &approval, &scenario, &"x".repeat(121), 150).is_err());
+    }
+
+    #[test]
+    fn exclusions_and_duplicate_assets_are_denied_with_fresh_scope_digest() {
+        let (mut scope, mut approval, scenario) = fixture();
+        scope.excluded_ips.push(scenario.target);
+        approval.scope_sha256 = scope.digest().unwrap();
+        assert!(authorize(&scope, &approval, &scenario, "operator", 150).is_err());
+        scope.excluded_ips.clear();
+        scope.assets.push(scope.assets[0].clone());
+        approval.scope_sha256 = scope.digest().unwrap();
         assert!(authorize(&scope, &approval, &scenario, "operator", 150).is_err());
     }
 }

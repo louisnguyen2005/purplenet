@@ -2,15 +2,29 @@ name: Rust checks
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * 1"
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   rust:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Rust tools
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
       - run: cargo +stable fmt --all -- --check
       - run: cargo +stable test --workspace --locked
       - run: cargo +stable clippy --workspace --all-targets --locked -- -D warnings
+      - name: Release-mode regression tests
+        if: runner.os == 'Linux'
+        run: cargo +stable test --workspace --locked --release

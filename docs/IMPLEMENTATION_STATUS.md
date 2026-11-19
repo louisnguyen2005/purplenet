@@ -14,6 +14,8 @@ As of 19 November 2026, PurpleNet has a working local mock slice:
 - A bounded JSON input reader and GitHub CI for formatting, tests, and Clippy.
 - Guarded mock state transitions and abandoned-run recovery before new dispatch, plus explicit `list-runs` and `recover-interrupted` commands.
 - Repository work-item templates, contribution guidance, and a [delivery roadmap](project-management/ROADMAP.md) tied to the workbook task IDs.
+- Automated CLI and concurrent-process regressions; Linux/Windows CI and weekly verification with Linux release-mode checks.
+- Bounded streaming audit validation before append, corruption/truncation refusal, output-path checks, and Unix parent-directory sync.
 
 The demo is intentionally not a release gate. It uses a generated example approval, a documentation IP range, and local files. It has no authenticated identity, external approval service, transactional database, independent telemetry connector, cleanup/recovery workflow, or signed scenario packs. The audit chain is not externally anchored, so a writer with full state access can forge a new chain.
 

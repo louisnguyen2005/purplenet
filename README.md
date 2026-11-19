@@ -53,6 +53,8 @@ The first release operates entirely on local JSON fixtures. Do not interpret the
 
 Install Rust with Cargo, rustfmt, and Clippy. Run `cargo fmt --all -- --check`, `cargo test --workspace --locked`, and `cargo clippy --workspace --all-targets --locked -- -D warnings` before contributing. CI runs the same checks on pushes and pull requests.
 
+The [testing guide](docs/TESTING.md) describes automated CLI, concurrency, policy, storage, and recovery coverage. CI also runs on Windows, checks release builds on Linux, and repeats weekly. See [local state constraints](docs/LOCAL_STATE.md) for audit byte limits, filesystem assumptions, and failure behavior.
+
 See the [project blueprint](docs/PROJECT_BLUEPRINT.md), [implementation status](docs/IMPLEMENTATION_STATUS.md), and [Excel tracker](docs/PurpleNet_Implementation_Tracker.xlsx) for the roadmap. Only tasks whose full acceptance criteria are met are marked Finished.
 
 For development ordering and folder responsibilities, use the [delivery roadmap](docs/project-management/ROADMAP.md), [folder guide](docs/project-management/FOLDER_GUIDE.md), and [contribution procedure](CONTRIBUTING.md).

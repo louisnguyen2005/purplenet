@@ -77,6 +77,7 @@ fn execute(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Init => {
             let store = Store::init(&cli.state)?;
+            let _lock = store.lock()?;
             let now = runner::now_unix();
             let scope = NetworkScope {
                 schema_version: 1,
@@ -174,6 +175,7 @@ fn execute(cli: Cli) -> Result<()> {
                 anyhow::bail!("invalid run ID");
             }
             let store = Store::open(&cli.state)?;
+            let _lock = store.lock()?;
             let path = store.root.join("runs").join(format!("{id}.json"));
             let run: Run = Store::read(&path)?;
             if run.id != id {
@@ -198,6 +200,7 @@ fn execute(cli: Cli) -> Result<()> {
         }
         Command::VerifyAudit => {
             let store = Store::open(&cli.state)?;
+            let _lock = store.lock()?;
             println!("Verified {} audit records", audit::verify(&store)?);
         }
     }

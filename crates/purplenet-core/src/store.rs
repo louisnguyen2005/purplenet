@@ -3,7 +3,7 @@ use fs2::FileExt;
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
     fs::{self, File, OpenOptions},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 use uuid::Uuid;
 
@@ -18,6 +18,42 @@ impl Drop for StoreLock {
 }
 
 impl Store {
+    /// Reject traversal and existing symlink components before a local write.
+    /// The state directory must remain writable only by the trusted operator;
+    /// these checks do not defend against concurrent hostile filesystem races.
+    pub(crate) fn prepare_file(&self, path: &Path) -> Result<()> {
+        let relative = path
+            .strip_prefix(&self.root)
+            .context("output is outside state directory")?;
+        if relative.as_os_str().is_empty()
+            || relative
+                .components()
+                .any(|part| !matches!(part, Component::Normal(_)))
+        {
+            bail!("output must use normal path components inside state");
+        }
+        let parent = relative.parent().context("output has no parent")?;
+        let mut current = self.root.clone();
+        for part in parent.components() {
+            current.push(part);
+            match fs::symlink_metadata(&current) {
+                Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {}
+                Ok(_) => bail!("unsafe output directory component"),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => fs::create_dir(&current)?,
+                Err(e) => return Err(e.into()),
+            }
+        }
+        match fs::symlink_metadata(path) {
+            Ok(meta) if !meta.is_file() || meta.file_type().is_symlink() => {
+                bail!("unsafe output file")
+            }
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
+        Ok(())
+    }
+
     /// Caller holds the store lock for a consistent snapshot.
     pub fn list_runs(&self) -> Result<Vec<crate::domain::Run>> {
         let mut runs = Vec::new();
@@ -49,9 +85,16 @@ impl Store {
         let root = fs::canonicalize(path)?;
         let store = Self { root };
         for dir in ["examples", "runs", "reports", "inputs"] {
-            fs::create_dir_all(store.root.join(dir))?;
+            let path = store.root.join(dir);
+            if let Ok(meta) = fs::symlink_metadata(&path) {
+                if !meta.is_dir() || meta.file_type().is_symlink() {
+                    bail!("unsafe state subdirectory: {dir}");
+                }
+            }
+            fs::create_dir_all(path)?;
         }
         let marker = store.root.join(".purplenet-state");
+        store.prepare_file(&marker)?;
         if !marker.exists() {
             fs::write(marker, b"purplenet mock state v1\n")?;
         }
@@ -74,6 +117,7 @@ impl Store {
     }
 
     pub fn lock(&self) -> Result<StoreLock> {
+        self.prepare_file(&self.root.join(".lock"))?;
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -100,20 +144,27 @@ impl Store {
     }
 
     pub fn write_bytes(&self, path: &Path, data: &[u8]) -> Result<()> {
+        self.prepare_file(path)?;
         let parent = path.parent().context("output has no parent")?;
-        if !parent.starts_with(&self.root) {
-            bail!("output path is outside state directory");
-        }
-        fs::create_dir_all(parent)?;
         let temp = parent.join(format!(".{}.tmp", Uuid::new_v4()));
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(&temp)?;
         use std::io::Write;
-        file.write_all(data)?;
-        file.sync_all()?;
-        fs::rename(&temp, path)?;
+        let result = (|| -> Result<()> {
+            file.write_all(data)?;
+            file.sync_all()?;
+            drop(file);
+            fs::rename(&temp, path)?;
+            #[cfg(unix)]
+            File::open(parent)?.sync_all()?;
+            Ok(())
+        })();
+        if result.is_err() {
+            let _ = fs::remove_file(&temp);
+        }
+        result?;
         Ok(())
     }
 }

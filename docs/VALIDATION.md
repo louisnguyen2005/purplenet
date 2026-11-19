@@ -19,3 +19,11 @@ The subsequent mock lifecycle increment was checked with formatting, workspace t
 Recovery tests simulate interrupted state by writing active run records into disposable stores. They do not establish transactional crash durability or exercise a live endpoint. Manual recovery and automatic startup recovery use the same exclusive-lock path; emergency stop and human recovery closure remain open.
 
 A CLI smoke check simulated an interrupted saved run, recovered it, confirmed repeated recovery returned no IDs, listed the recovery-required state, exported its report, and verified twelve audit records. The workspace and repository workbook copies were compared byte for byte after synchronization.
+
+## Automated verification and local-state hardening increment
+
+Local Linux checks passed: formatting, Clippy with warnings denied, and all twenty tests in both debug and release mode. The suite comprises eight policy tests, five report/recovery tests, four storage/audit tests, and three actual-binary CLI tests. New cases include window boundaries, operator-name padding, corrupt and incomplete audit append refusal, byte limits, traversal and Unix symlink rejection, and concurrent CLI processes sharing the store lock.
+
+Audit validation now streams bounded records instead of buffering the entire log; each append verifies history and rejects an incomplete final record. The path checks and Unix directory sync improve local file handling but do not create a transaction or defend against concurrent hostile filesystem mutation. See the local-state guide for limits and compatibility.
+
+CI is configured for Linux and Windows, with Linux release tests, manual dispatch, and weekly verification. Platform results are available on the repository Actions page. Independent operator review, production-scale performance, adversarial filesystem races, and transactional crash durability remain outside these results.
