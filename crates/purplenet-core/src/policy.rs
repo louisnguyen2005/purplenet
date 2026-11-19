@@ -17,7 +17,10 @@ pub fn authorize(
     if scope.id != approval.scope_id || scope.digest()? != approval.scope_sha256 {
         bail!("approval is not bound to this exact scope");
     }
-    if scenario.id != approval.scenario_id || !scope.allowed_scenarios.contains(&scenario.id) {
+    if scenario.id != approval.scenario_id
+        || scenario.digest()? != approval.scenario_sha256
+        || !scope.allowed_scenarios.contains(&scenario.id)
+    {
         bail!("scenario not approved by scope and approval");
     }
     if now < scope.valid_from_unix || now >= scope.valid_until_unix {
@@ -54,7 +57,7 @@ mod tests {
     use super::*;
     use crate::domain::{Asset, MockEvent};
 
-    fn fixture() -> (NetworkScope, Approval, Scenario) {
+    pub(super) fn fixture() -> (NetworkScope, Approval, Scenario) {
         let scope = NetworkScope {
             schema_version: 1,
             id: "lab".into(),
@@ -83,11 +86,12 @@ mod tests {
             }],
         };
         let approval = Approval {
-            schema_version: 1,
+            schema_version: 2,
             id: "a1".into(),
             scope_id: scope.id.clone(),
             scope_sha256: scope.digest().unwrap(),
             scenario_id: scenario.id.clone(),
+            scenario_sha256: scenario.digest().unwrap(),
             approved_by: "approver".into(),
             valid_from_unix: 100,
             valid_until_unix: 200,
@@ -119,5 +123,29 @@ mod tests {
         let (scope, approval, scenario) = fixture();
         assert!(authorize(&scope, &approval, &scenario, "operator", 200).is_err());
         assert!(authorize(&scope, &approval, &scenario, "approver", 150).is_err());
+    }
+}
+
+#[cfg(test)]
+mod scenario_binding_tests {
+    use super::tests::fixture;
+    use super::*;
+
+    #[test]
+    fn rejects_changed_scenario_with_same_id() {
+        let (scope, approval, mut scenario) = fixture();
+        scenario.mock_events[0].label = "changed after approval".into();
+        assert!(authorize(&scope, &approval, &scenario, "operator", 150).is_err());
+    }
+
+    #[test]
+    fn rejects_legacy_approval_and_unknown_asset_even_with_fresh_digest() {
+        let (scope, mut approval, mut scenario) = fixture();
+        approval.schema_version = 1;
+        assert!(authorize(&scope, &approval, &scenario, "operator", 150).is_err());
+        approval.schema_version = 2;
+        scenario.target_asset_id = "unknown".into();
+        approval.scenario_sha256 = scenario.digest().unwrap();
+        assert!(authorize(&scope, &approval, &scenario, "operator", 150).is_err());
     }
 }

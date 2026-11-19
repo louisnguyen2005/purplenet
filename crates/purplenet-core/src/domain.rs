@@ -36,6 +36,7 @@ pub struct Approval {
     pub scope_id: String,
     pub scope_sha256: String,
     pub scenario_id: String,
+    pub scenario_sha256: String,
     pub approved_by: String,
     pub valid_from_unix: u64,
     pub valid_until_unix: u64,
@@ -157,16 +158,18 @@ impl NetworkScope {
 
 impl Approval {
     pub fn validate(&self) -> Result<()> {
-        if self.schema_version != 1
+        if self.schema_version != 2
             || !valid_id(&self.id)
             || !valid_id(&self.scope_id)
             || !valid_id(&self.scenario_id)
             || !valid_person(&self.approved_by)
             || self.scope_sha256.len() != 64
             || !self.scope_sha256.bytes().all(|b| b.is_ascii_hexdigit())
+            || self.scenario_sha256.len() != 64
+            || !self.scenario_sha256.bytes().all(|b| b.is_ascii_hexdigit())
             || self.valid_from_unix >= self.valid_until_unix
         {
-            bail!("invalid approval");
+            bail!("invalid approval (version 2 and exact scenario digest required)");
         }
         Ok(())
     }

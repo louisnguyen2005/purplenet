@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use purplenet_core::{
     audit,
     domain::{Approval, Asset, MockEvent, NetworkScope, Run, Scenario},
-    runner,
+    report, runner,
     store::Store,
 };
 use std::{path::PathBuf, str::FromStr};
@@ -49,6 +49,12 @@ enum Command {
     },
     /// Display a saved run by ID.
     ShowRun { id: String },
+    /// Create a provenance-checked JSON report for a stored mock run.
+    ReportRun {
+        id: String,
+        #[arg(long)]
+        actor: String,
+    },
     /// Check the local hash-linked audit sequence.
     VerifyAudit,
 }
@@ -100,11 +106,12 @@ fn execute(cli: Cli) -> Result<()> {
                 ],
             };
             let approval = Approval {
-                schema_version: 1,
+                schema_version: 2,
                 id: "example-approval".into(),
                 scope_id: scope.id.clone(),
                 scope_sha256: scope.digest()?,
                 scenario_id: scenario.id.clone(),
+                scenario_sha256: scenario.digest()?,
                 approved_by: "example-approver".into(),
                 valid_from_unix: now.saturating_sub(60),
                 valid_until_unix: now + 86400,
@@ -166,6 +173,11 @@ fn execute(cli: Cli) -> Result<()> {
                 anyhow::bail!("run ID mismatch");
             }
             println!("{}", serde_json::to_string_pretty(&run)?);
+        }
+        Command::ReportRun { id, actor } => {
+            let store = Store::open(&cli.state)?;
+            let path = report::export(&store, &id, &actor)?;
+            println!("Saved mock report at {}", path.display());
         }
         Command::VerifyAudit => {
             let store = Store::open(&cli.state)?;

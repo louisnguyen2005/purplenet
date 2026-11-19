@@ -9,6 +9,9 @@ As of 19 November 2026, PurpleNet has a working local mock slice:
 - Data-only mock event generation. No network traffic or endpoint actions.
 - A proposed libvirt isolated-network configuration for `10.77.0.0/24`, not yet deployed.
 - A versioned [threat model](THREAT_MODEL.md) covering implemented and planned trust boundaries, misuse cases, and live-use gates.
+- Approval schema 2 binding exact scenario and scope digests, with legacy approvals rejected.
+- Preserved per-run inputs and provenance-checked JSON/Markdown mock reports with audited exports.
+- A bounded JSON input reader and GitHub CI for formatting, tests, and Clippy.
 
 The demo is intentionally not a release gate. It uses a generated example approval, a documentation IP range, and local files. It has no authenticated identity, external approval service, transactional database, independent telemetry connector, cleanup/recovery workflow, or signed scenario packs. The audit chain is not externally anchored, so a writer with full state access can forge a new chain.
 
@@ -20,4 +23,4 @@ The demo is intentionally not a release gate. It uses a generated example approv
 4. Add one read-only sensor connector and data quality states.
 5. Add stop, cleanup, recovery-required, service health, and evidence report gates.
 
-The authoritative plan and acceptance criteria are in `../reports/PurpleNet project blueprint.md` relative to the workspace root, and progress is tracked in `../outputs/purplenet_tracker_20261117/PurpleNet_Implementation_Tracker.xlsx`.
+The authoritative plan and acceptance criteria are in [PROJECT_BLUEPRINT.md](PROJECT_BLUEPRINT.md), and progress is tracked in [the Excel workbook](PurpleNet_Implementation_Tracker.xlsx). The original workspace copy of the workbook is kept synchronized with this repository copy when implementation status is updated.

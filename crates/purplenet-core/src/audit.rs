@@ -78,9 +78,8 @@ pub fn append(
 pub fn verify(store: &Store) -> Result<usize> {
     let contents = fs::read_to_string(store.root.join("audit.jsonl")).context("read audit log")?;
     let mut expected_previous = "0".repeat(64);
-    let mut expected_sequence = 1;
     let mut count = 0;
-    for line in contents.lines() {
+    for (expected_sequence, line) in (1_u64..).zip(contents.lines()) {
         let record: AuditRecord = serde_json::from_str(line).context("parse audit record")?;
         if record.sequence != expected_sequence || record.previous_hash != expected_previous {
             bail!("audit chain sequence or predecessor mismatch at record {expected_sequence}");
@@ -90,7 +89,6 @@ pub fn verify(store: &Store) -> Result<usize> {
             bail!("audit record hash mismatch at record {expected_sequence}");
         }
         expected_previous = record.record_hash;
-        expected_sequence += 1;
         count += 1;
     }
     Ok(count)

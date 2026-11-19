@@ -70,6 +70,15 @@ pub fn run_mock(
         "policy checks passed",
         Some(&run.id),
     )?;
+    // Preserve the approved input objects for later report reproduction.
+    store.write(
+        &store.root.join("inputs").join(format!("{}.json", run.id)),
+        &crate::report::RunInputs {
+            scope: scope.clone(),
+            approval: approval.clone(),
+            scenario: scenario.clone(),
+        },
+    )?;
     store.write(&path, &run)?;
     run.state = RunState::Ready;
     run.updated_unix = now_unix();
