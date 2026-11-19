@@ -52,9 +52,18 @@ fn bounded_json_reads_and_traversal_do_not_modify_existing_state() {
     let f = Fixture::new();
     let path = f.root.join("runs").join("example.json");
     f.store.write(&path, &vec![1, 2, 3]).unwrap();
+    // PathBuf::join normalizes `..` for Windows verbatim roots before the
+    // store sees it. Build a raw OsString to exercise the actual path guard.
+    let mut traversal = f.root.as_os_str().to_os_string();
+    traversal.push(std::path::MAIN_SEPARATOR_STR);
+    traversal.push("runs");
+    traversal.push(std::path::MAIN_SEPARATOR_STR);
+    traversal.push("..");
+    traversal.push(std::path::MAIN_SEPARATOR_STR);
+    traversal.push("escaped.json");
     assert!(f
         .store
-        .write_bytes(&f.root.join("runs/../escaped.json"), b"unsafe")
+        .write_bytes(&PathBuf::from(traversal), b"unsafe")
         .is_err());
     assert!(!f.root.join("escaped.json").exists());
     assert_eq!(Store::read::<Vec<u8>>(&path).unwrap(), vec![1, 2, 3]);
