@@ -52,7 +52,7 @@ pub fn append(
     let path = store.root.join("audit.jsonl");
     store.prepare_file(&path)?;
     let (count, previous_hash, existing_bytes) = match File::open(&path) {
-        Ok(file) => scan(file)?,
+        Ok(file) => scan(file, |_| {})?,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => (0, "0".repeat(64), 0),
         Err(e) => return Err(e).context("read audit log"),
     };
@@ -82,11 +82,28 @@ pub fn append(
 pub fn verify(store: &Store) -> Result<usize> {
     let path = store.root.join("audit.jsonl");
     store.prepare_file(&path)?;
-    let (count, _, _) = scan(File::open(path).context("read audit log")?)?;
+    let (count, _, _) = scan(File::open(path).context("read audit log")?, |_| {})?;
     Ok(count)
 }
 
-fn scan(file: File) -> Result<(usize, String, u64)> {
+/// Verify history and require an allowed-run decision for every supplied ID.
+pub fn verify_runs(store: &Store, ids: &[String]) -> Result<(usize, Vec<String>)> {
+    let path = store.root.join("audit.jsonl");
+    store.prepare_file(&path)?;
+    let mut missing: std::collections::HashSet<&str> = ids.iter().map(String::as_str).collect();
+    let (count, _, _) = scan(File::open(path).context("read audit log")?, |record| {
+        if record.action == "run_mock" && record.decision == "allowed" {
+            if let Some(id) = record.run_id.as_deref() {
+                missing.remove(id);
+            }
+        }
+    })?;
+    let mut missing: Vec<String> = missing.into_iter().map(str::to_owned).collect();
+    missing.sort();
+    Ok((count, missing))
+}
+
+fn scan(file: File, mut visit: impl FnMut(&AuditRecord)) -> Result<(usize, String, u64)> {
     if !file.metadata()?.is_file() || file.metadata()?.len() > MAX_LOG_BYTES {
         bail!("audit must be a regular file within the log byte limit");
     }
@@ -116,6 +133,7 @@ fn scan(file: File) -> Result<(usize, String, u64)> {
         if record.record_hash != hash {
             bail!("audit record hash mismatch at record {expected_sequence}");
         }
+        visit(&record);
         expected_previous = record.record_hash;
         count += 1;
     }

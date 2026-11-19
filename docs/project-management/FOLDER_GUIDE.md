@@ -10,6 +10,7 @@
 | `crates/purplenet-core/src/store.rs` | Local persistence, inventory and locking | Keep bounds and malformed-state behavior explicit. |
 | `crates/purplenet-core/src/audit.rs` | Local hash-linked decisions | Do not describe local hashes as external tamper protection. |
 | `crates/purplenet-core/src/report.rs` | Evidence consistency checks and mock export | Keep synthetic results distinct from independent detection evidence. |
+| `crates/purplenet-core/src/health.rs` | Read-only state consistency preflight | Preserve findings, distinguish consistency from readiness, and never repair implicitly. |
 | `crates/purplenet-core/tests` | Workflow and fault regressions | Exercise observable behavior and concrete failure risks. |
 | `apps/purplenet-cli/tests` | Actual binary workflows, failure exits and concurrent operators | Use disposable state and synthetic inputs; assert user-visible behavior. |
 | `deploy/libvirt` | Proposed isolated lab configuration | Keep owner, inventory and deployment state explicit. |

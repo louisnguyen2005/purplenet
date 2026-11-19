@@ -29,3 +29,9 @@ Audit validation now streams bounded records instead of buffering the entire log
 CI is configured for Linux and Windows, with Linux release tests, manual dispatch, and weekly verification. Platform results are available on the repository Actions page. Independent operator review, production-scale performance, adversarial filesystem races, and transactional crash durability remain outside these results.
 
 The initial Windows run exposed a test-construction difference: joining onto a verbatim Windows root normalized `..` before the store received the path. The traversal regression now constructs a raw OS string to preserve those components and exercise the rejection directly. This follows the documented [Rust PathBuf normalization behavior](https://doc.rust-lang.org/std/path/struct.PathBuf.html#method.push).
+
+## State preflight and enhancement backlog increment
+
+Formatting, workspace tests, and Clippy passed locally for the new state preflight. Twenty-four tests cover Linux; the four added regressions check fresh and valid stores without evidence mutation, missing inputs and audit authorization links, combined audit/provenance failures and malformed inventory, and structured CLI failure output without repair. The checker reports active/recovery-required counts without treating stored-data consistency as permission to resume.
+
+The workbook now has 15 Proposed enhancements with acceptance evidence and dependencies. Original implementation totals remain 81 tasks, 5 Finished and 18 In Progress. Dashboard text was refreshed to reflect implemented work and the separate proposal backlog. The new backlog and dashboard were rendered, and formula inspection found no errors.

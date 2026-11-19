@@ -17,6 +17,8 @@ Export a provenance-checked JSON and Markdown evidence report with `cargo run -p
 
 Use `cargo run -p purplenet-cli -- list-runs` to inspect saved runs and `cargo run -p purplenet-cli -- recover-interrupted --actor example-recovery-owner` after an interruption. New mock runs also mark abandoned active records `recovery_required` before starting. See [run lifecycle and recovery](docs/RUN_LIFECYCLE.md).
 
+Use `cargo run -p purplenet-cli -- check-state` for a read-only JSON consistency preflight. It checks stored input provenance, audit history, and run authorization links, and exits nonzero on findings. See [state checks](docs/STATE_CHECK.md).
+
 The sample scope uses `192.0.2.0/24`, a documentation network. The generated approval is only a demo fixture and expires after one day. It does not authorize activity on a real network. Replace it with a reviewed scope and approval record only after the owner, environment, and lab boundary are decided.
 
 The proposed first lab uses libvirt and `10.77.0.0/24`. Its isolated-network XML and deliberately expired scope template are in [deploy/libvirt](deploy/libvirt/README.md). They are not activated by the CLI.
@@ -58,3 +60,5 @@ The [testing guide](docs/TESTING.md) describes automated CLI, concurrency, polic
 See the [project blueprint](docs/PROJECT_BLUEPRINT.md), [implementation status](docs/IMPLEMENTATION_STATUS.md), and [Excel tracker](docs/PurpleNet_Implementation_Tracker.xlsx) for the roadmap. Only tasks whose full acceptance criteria are met are marked Finished.
 
 For development ordering and folder responsibilities, use the [delivery roadmap](docs/project-management/ROADMAP.md), [folder guide](docs/project-management/FOLDER_GUIDE.md), and [contribution procedure](CONTRIBUTING.md).
+
+The workbook's **Enhancement Backlog** contains 15 prioritized future proposals with dependencies and acceptance evidence. These proposals are separate from the 81 implementation tasks and are not included in completion totals.

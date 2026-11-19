@@ -131,3 +131,28 @@ fn changed_scenario_returns_failure_and_creates_no_run() {
     assert_eq!(fs::read_dir(lab.root.join("runs")).unwrap().count(), 0);
     lab.ok(&["verify-audit"]);
 }
+
+#[test]
+fn state_check_outputs_structured_findings_and_failure_exit_without_repair() {
+    let lab = Lab::new();
+    let fresh: Value = serde_json::from_slice(&lab.ok(&["check-state"]).stdout).unwrap();
+    assert_eq!(fresh["consistent"], true);
+    assert!(lab.mock().output().unwrap().status.success());
+    let valid: Value = serde_json::from_slice(&lab.ok(&["check-state"]).stdout).unwrap();
+    assert_eq!(valid["runs_checked"], 1);
+    let input = fs::read_dir(lab.root.join("inputs"))
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    fs::remove_file(&input).unwrap();
+    let audit = fs::read(lab.root.join("audit.jsonl")).unwrap();
+    let out = lab.command(&["check-state"]).output().unwrap();
+    assert!(!out.status.success());
+    let invalid: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(invalid["consistent"], false);
+    assert_eq!(invalid["findings"][0]["code"], "missing_or_unsafe_inputs");
+    assert!(!input.exists());
+    assert_eq!(fs::read(lab.root.join("audit.jsonl")).unwrap(), audit);
+}

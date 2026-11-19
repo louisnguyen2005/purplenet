@@ -9,7 +9,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked --release
 ```
 
-The workspace currently has twenty tests on Linux. Windows omits the Unix symlink regression and runs nineteen. Tests use disposable directories and synthetic documentation addresses; they create no lab network traffic.
+The workspace currently has twenty-four tests on Linux. Windows omits the Unix symlink regression and runs twenty-three. Tests use disposable directories and synthetic documentation addresses; they create no lab network traffic.
 
 | Suite | Behavior exercised |
 |---|---|
@@ -17,6 +17,7 @@ The workspace currently has twenty tests on Linux. Windows omits the Unix symlin
 | Core report/recovery | Provenance, modified observations, interrupted states, recovery idempotency, no terminal restart, invalid timestamps, corrupt audit and inventory blocking dispatch |
 | Core storage/audit | Corrupt and incomplete JSONL, append refusal without mutation, byte limits, bounded input reads, parent traversal, symlinked outputs and lock/audit paths on Unix |
 | CLI process tests | Init, run, list, report, recover, verify; rejected changed scenario with nonzero exit and no run; concurrent processes serialized by the store lock |
+| State consistency checks | Fresh and valid stores; unchanged evidence; missing snapshots; unlinked run IDs; simultaneous audit/provenance failures; malformed inventory; structured CLI findings and failure exit |
 
 The CLI tests launch the actual Cargo-built binary rather than calling only library methods. Recovery cases simulate interrupted saved state. They do not prove power-loss durability, real adapter stop behavior, or independent sensor detection.
 

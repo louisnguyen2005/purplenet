@@ -16,6 +16,8 @@ As of 19 November 2026, PurpleNet has a working local mock slice:
 - Repository work-item templates, contribution guidance, and a [delivery roadmap](project-management/ROADMAP.md) tied to the workbook task IDs.
 - Automated CLI and concurrent-process regressions; Linux/Windows CI and weekly verification with Linux release-mode checks.
 - Bounded streaming audit validation before append, corruption/truncation refusal, output-path checks, and Unix parent-directory sync.
+- Read-only `check-state` preflight for run provenance, audit integrity, and allowed-run decision links, with structured findings and nonzero failure exit.
+- Fifteen future enhancement proposals in the workbook, each with priority, dependencies, task mapping, and acceptance evidence.
 
 The demo is intentionally not a release gate. It uses a generated example approval, a documentation IP range, and local files. It has no authenticated identity, external approval service, transactional database, independent telemetry connector, cleanup/recovery workflow, or signed scenario packs. The audit chain is not externally anchored, so a writer with full state access can forge a new chain.
 

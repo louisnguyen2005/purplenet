@@ -15,6 +15,8 @@ This roadmap groups work into reviewable increments. The [Excel tracker](../Purp
 
 The next implementation priority after mock recovery is the durable controller design: choose a transactional storage contract and actor model before introducing asynchronous execution or live adapters. Lab ownership and actual inventory can proceed alongside this work, but software development cannot supply missing human approval.
 
+The workbook's **Enhancement Backlog** expands this roadmap into 15 proposals. Start with ENH-001 (transactional migration/rollback) and ENH-002 (authenticated actors). The new `check-state` preflight supplies an integrity check for existing source records before migration design. Later proposals cover reviewed scenario promotion, sensor replay, scope drift, independent audit checkpoints, detection comparison, redaction, restore rehearsal, idempotency, fault injection, performance budgets, policy explanations, a local evidence viewer, and read-only AI evaluation. All remain Proposed until separately accepted into implementation work; their presence does not imply approval or delivery.
+
 ## Work-item procedure
 
 1. Select an existing task ID and state the specific behavior to deliver. Break large tasks into a bounded increment without weakening the original acceptance criterion.

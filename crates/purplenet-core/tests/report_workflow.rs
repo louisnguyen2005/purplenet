@@ -174,3 +174,86 @@ fn invalid_audit_blocks_recovery_before_state_changes() {
     assert!(runner::run_mock(&store, &scope, &approval, &scenario, "operator").is_err());
     std::fs::remove_dir_all(&store.root).unwrap();
 }
+
+#[test]
+fn state_check_accepts_fresh_and_valid_stores_without_changing_evidence() {
+    let (store, scope, approval, scenario) = fixture();
+    let fresh = purplenet_core::health::check(&store).unwrap();
+    assert!(fresh.consistent);
+    assert_eq!(fresh.audit_records, Some(0));
+    assert!(!store.root.join("audit.jsonl").exists());
+    let mut run = runner::run_mock(&store, &scope, &approval, &scenario, "operator").unwrap();
+    let path = store.root.join("runs").join(format!("{}.json", run.id));
+    run.state = RunState::Running;
+    store.write(&path, &run).unwrap();
+    let before = std::fs::read(&path).unwrap();
+    let audit = std::fs::read(store.root.join("audit.jsonl")).unwrap();
+    let checked = purplenet_core::health::check(&store).unwrap();
+    assert!(checked.consistent);
+    assert_eq!(checked.active_runs, 1);
+    assert_eq!(checked.runs_checked, 1);
+    assert_eq!(std::fs::read(path).unwrap(), before);
+    assert_eq!(
+        std::fs::read(store.root.join("audit.jsonl")).unwrap(),
+        audit
+    );
+    std::fs::remove_dir_all(&store.root).unwrap();
+}
+
+#[test]
+fn state_check_reports_missing_inputs_and_unlinked_run_ids() {
+    let (store, scope, approval, scenario) = fixture();
+    let run = runner::run_mock(&store, &scope, &approval, &scenario, "operator").unwrap();
+    let mut orphan = run.clone();
+    orphan.id = uuid::Uuid::new_v4().to_string();
+    store
+        .write(
+            &store.root.join("runs").join(format!("{}.json", orphan.id)),
+            &orphan,
+        )
+        .unwrap();
+    let checked = purplenet_core::health::check(&store).unwrap();
+    assert!(!checked.consistent);
+    assert!(checked
+        .findings
+        .iter()
+        .any(|f| f.code == "missing_run_authorization" && f.run_id.as_deref() == Some(&orphan.id)));
+    assert!(checked
+        .findings
+        .iter()
+        .any(|f| f.code == "missing_or_unsafe_inputs"));
+    std::fs::remove_dir_all(&store.root).unwrap();
+}
+
+#[test]
+fn state_check_collects_provenance_and_audit_failures_then_handles_invalid_inventory() {
+    let (store, scope, approval, scenario) = fixture();
+    let mut run = runner::run_mock(&store, &scope, &approval, &scenario, "operator").unwrap();
+    run.events[0].label = "tampered".into();
+    store
+        .write(
+            &store.root.join("runs").join(format!("{}.json", run.id)),
+            &run,
+        )
+        .unwrap();
+    std::fs::write(store.root.join("audit.jsonl"), b"invalid\n").unwrap();
+    let checked = purplenet_core::health::check(&store).unwrap();
+    assert!(!checked.consistent);
+    assert_eq!(checked.audit_records, None);
+    assert!(checked
+        .findings
+        .iter()
+        .any(|f| f.code == "invalid_audit_history"));
+    assert!(checked
+        .findings
+        .iter()
+        .any(|f| f.code == "invalid_run_provenance"));
+    std::fs::write(store.root.join("runs/broken.json"), b"invalid").unwrap();
+    let checked = purplenet_core::health::check(&store).unwrap();
+    assert!(checked
+        .findings
+        .iter()
+        .any(|f| f.code == "invalid_run_inventory"));
+    assert_eq!(checked.runs_checked, 0);
+    std::fs::remove_dir_all(&store.root).unwrap();
+}

@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use purplenet_core::{
     audit,
     domain::{Approval, Asset, MockEvent, NetworkScope, Run, Scenario},
-    lifecycle, report, runner,
+    health, lifecycle, report, runner,
     store::Store,
 };
 use std::{path::PathBuf, str::FromStr};
@@ -57,6 +57,8 @@ enum Command {
     },
     /// List saved runs in a consistent store snapshot.
     ListRuns,
+    /// Check stored mock provenance and audit consistency without repairing state.
+    CheckState,
     /// Mark abandoned mock runs recovery-required; never resume them.
     RecoverInterrupted {
         #[arg(long)]
@@ -192,6 +194,17 @@ fn execute(cli: Cli) -> Result<()> {
             let store = Store::open(&cli.state)?;
             let _lock = store.lock()?;
             println!("{}", serde_json::to_string_pretty(&store.list_runs()?)?);
+        }
+        Command::CheckState => {
+            let store = Store::open(&cli.state)?;
+            let check = health::check(&store)?;
+            println!("{}", serde_json::to_string_pretty(&check)?);
+            if !check.consistent {
+                anyhow::bail!(
+                    "state consistency check found {} issue(s)",
+                    check.findings.len()
+                );
+            }
         }
         Command::RecoverInterrupted { actor } => {
             let store = Store::open(&cli.state)?;
