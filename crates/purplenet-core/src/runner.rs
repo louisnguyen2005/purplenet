@@ -1,7 +1,7 @@
 use crate::{
     audit,
     domain::{Approval, NetworkScope, ObservedEvent, Run, RunState, Scenario},
-    policy,
+    lifecycle, policy,
     store::Store,
 };
 use anyhow::{bail, Result};
@@ -45,6 +45,7 @@ pub fn run_mock(
         )?;
         return Err(error);
     }
+    lifecycle::recover_locked(store, actor)?;
     let mut run = Run {
         schema_version: 1,
         id: Uuid::new_v4().to_string(),
@@ -80,18 +81,30 @@ pub fn run_mock(
         },
     )?;
     store.write(&path, &run)?;
-    run.state = RunState::Ready;
-    run.updated_unix = now_unix();
-    store.write(&path, &run)?;
-    run.state = RunState::Running;
-    run.updated_unix = now_unix();
-    store.write(&path, &run)?;
+    lifecycle::transition_locked(
+        store,
+        &mut run,
+        RunState::Ready,
+        actor,
+        "mock inputs preserved",
+    )?;
+    lifecycle::transition_locked(
+        store,
+        &mut run,
+        RunState::Running,
+        actor,
+        "begin synthetic observations",
+    )?;
     for event in &scenario.mock_events {
         // Revalidate before each mock dispatch. No packet or process is created.
         if let Err(error) = policy::authorize(scope, approval, scenario, actor, now_unix()) {
-            run.state = RunState::Failed;
-            run.updated_unix = now_unix();
-            store.write(&path, &run)?;
+            lifecycle::transition_locked(
+                store,
+                &mut run,
+                RunState::Failed,
+                actor,
+                &error.to_string(),
+            )?;
             audit::append(
                 store,
                 now_unix(),
@@ -110,14 +123,18 @@ pub fn run_mock(
             id: event.id.clone(),
             label: event.label.clone(),
             source: "purplenet/mock".into(),
-            observed_unix: now_unix(),
+            observed_unix: now_unix().max(run.updated_unix),
         });
-        run.updated_unix = now_unix();
+        run.updated_unix = now_unix().max(run.updated_unix);
         store.write(&path, &run)?;
     }
-    run.state = RunState::Completed;
-    run.updated_unix = now_unix();
-    store.write(&path, &run)?;
+    lifecycle::transition_locked(
+        store,
+        &mut run,
+        RunState::Completed,
+        actor,
+        "all synthetic observations stored",
+    )?;
     audit::append(
         store,
         now_unix(),

@@ -11,3 +11,11 @@ Validated the approval-v2 and mock-report implementation locally before its firs
 - Workbook formulas recalculated without reported formula errors; the affected work-item view was rendered and reviewed. P2-007 is Finished; partially implemented provenance and CLI items remain In Progress.
 
 These checks cover the local mock slice. They do not validate independent detection, authenticated authorization, VM isolation, stop/recovery behavior, transactional crash recovery, or production readiness. Those capabilities remain open in the tracker.
+
+## Interrupted-run recovery increment
+
+The subsequent mock lifecycle increment was checked with formatting, workspace tests, and Clippy. Five policy tests and five workflow tests passed. Recovery cases cover all three abandoned active states, repeated recovery with no duplicate audit mutation, preserved observations, unchanged completed records, automatic recovery before a fresh run, report export for a recovered run, malformed inventory blocking dispatch, invalid audit blocking recovery, invalid terminal transitions, and rejection of backwards transition timestamps.
+
+Recovery tests simulate interrupted state by writing active run records into disposable stores. They do not establish transactional crash durability or exercise a live endpoint. Manual recovery and automatic startup recovery use the same exclusive-lock path; emergency stop and human recovery closure remain open.
+
+A CLI smoke check simulated an interrupted saved run, recovered it, confirmed repeated recovery returned no IDs, listed the recovery-required state, exported its report, and verified twelve audit records. The workspace and repository workbook copies were compared byte for byte after synchronization.

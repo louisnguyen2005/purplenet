@@ -15,6 +15,8 @@ Check the local audit chain with `cargo run -p purplenet-cli -- verify-audit`.
 
 Export a provenance-checked JSON and Markdown evidence report with `cargo run -p purplenet-cli -- report-run <ID> --actor example-reviewer`. Reports preserve approved inputs and label all observations as synthetic. See [report format and migration](docs/MOCK_REPORTS.md).
 
+Use `cargo run -p purplenet-cli -- list-runs` to inspect saved runs and `cargo run -p purplenet-cli -- recover-interrupted --actor example-recovery-owner` after an interruption. New mock runs also mark abandoned active records `recovery_required` before starting. See [run lifecycle and recovery](docs/RUN_LIFECYCLE.md).
+
 The sample scope uses `192.0.2.0/24`, a documentation network. The generated approval is only a demo fixture and expires after one day. It does not authorize activity on a real network. Replace it with a reviewed scope and approval record only after the owner, environment, and lab boundary are decided.
 
 The proposed first lab uses libvirt and `10.77.0.0/24`. Its isolated-network XML and deliberately expired scope template are in [deploy/libvirt](deploy/libvirt/README.md). They are not activated by the CLI.
@@ -52,3 +54,5 @@ The first release operates entirely on local JSON fixtures. Do not interpret the
 Install Rust with Cargo, rustfmt, and Clippy. Run `cargo fmt --all -- --check`, `cargo test --workspace --locked`, and `cargo clippy --workspace --all-targets --locked -- -D warnings` before contributing. CI runs the same checks on pushes and pull requests.
 
 See the [project blueprint](docs/PROJECT_BLUEPRINT.md), [implementation status](docs/IMPLEMENTATION_STATUS.md), and [Excel tracker](docs/PurpleNet_Implementation_Tracker.xlsx) for the roadmap. Only tasks whose full acceptance criteria are met are marked Finished.
+
+For development ordering and folder responsibilities, use the [delivery roadmap](docs/project-management/ROADMAP.md), [folder guide](docs/project-management/FOLDER_GUIDE.md), and [contribution procedure](CONTRIBUTING.md).

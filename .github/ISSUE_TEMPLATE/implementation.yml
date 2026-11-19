@@ -1,0 +1,28 @@
+name: Implementation increment
+description: Plan a bounded increment linked to the PurpleNet tracker.
+body:
+  - type: input
+    id: task
+    attributes:
+      label: Tracker task ID
+      placeholder: P2-008
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Behavior and acceptance criteria
+      description: Describe the observable behavior and the remaining part of the original task.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Files, schema compatibility, and failure behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Verification and completion evidence
+      description: Include focused checks, documentation, tracker update, and CI result.

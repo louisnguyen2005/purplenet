@@ -60,7 +60,7 @@ pub struct MockEvent {
     pub label: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RunState {
     Approved,
@@ -68,6 +68,22 @@ pub enum RunState {
     Running,
     Completed,
     Failed,
+    RecoveryRequired,
+}
+
+impl RunState {
+    pub fn is_active(self) -> bool {
+        matches!(self, Self::Approved | Self::Ready | Self::Running)
+    }
+
+    pub fn can_transition_to(self, next: Self) -> bool {
+        matches!(
+            (self, next),
+            (Self::Approved, Self::Ready)
+                | (Self::Ready, Self::Running)
+                | (Self::Running, Self::Completed)
+        ) || (self.is_active() && matches!(next, Self::Failed | Self::RecoveryRequired))
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -93,6 +109,20 @@ pub struct Run {
     pub created_unix: u64,
     pub updated_unix: u64,
     pub events: Vec<ObservedEvent>,
+}
+
+impl Run {
+    pub fn transition(&mut self, next: RunState, now: u64) -> Result<()> {
+        if !self.state.can_transition_to(next) {
+            bail!("invalid run transition: {:?} -> {:?}", self.state, next);
+        }
+        if now < self.updated_unix || now < self.created_unix {
+            bail!("run transition timestamp moved backwards");
+        }
+        self.state = next;
+        self.updated_unix = now;
+        Ok(())
+    }
 }
 
 pub fn valid_id(value: &str) -> bool {

@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use purplenet_core::{
     audit,
     domain::{Approval, Asset, MockEvent, NetworkScope, Run, Scenario},
-    report, runner,
+    lifecycle, report, runner,
     store::Store,
 };
 use std::{path::PathBuf, str::FromStr};
@@ -52,6 +52,13 @@ enum Command {
     /// Create a provenance-checked JSON report for a stored mock run.
     ReportRun {
         id: String,
+        #[arg(long)]
+        actor: String,
+    },
+    /// List saved runs in a consistent store snapshot.
+    ListRuns,
+    /// Mark abandoned mock runs recovery-required; never resume them.
+    RecoverInterrupted {
         #[arg(long)]
         actor: String,
     },
@@ -178,6 +185,16 @@ fn execute(cli: Cli) -> Result<()> {
             let store = Store::open(&cli.state)?;
             let path = report::export(&store, &id, &actor)?;
             println!("Saved mock report at {}", path.display());
+        }
+        Command::ListRuns => {
+            let store = Store::open(&cli.state)?;
+            let _lock = store.lock()?;
+            println!("{}", serde_json::to_string_pretty(&store.list_runs()?)?);
+        }
+        Command::RecoverInterrupted { actor } => {
+            let store = Store::open(&cli.state)?;
+            let ids = lifecycle::recover_interrupted(&store, &actor)?;
+            println!("{}", serde_json::to_string_pretty(&ids)?);
         }
         Command::VerifyAudit => {
             let store = Store::open(&cli.state)?;

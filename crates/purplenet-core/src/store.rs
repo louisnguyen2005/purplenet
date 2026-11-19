@@ -18,6 +18,32 @@ impl Drop for StoreLock {
 }
 
 impl Store {
+    /// Caller holds the store lock for a consistent snapshot.
+    pub fn list_runs(&self) -> Result<Vec<crate::domain::Run>> {
+        let mut runs = Vec::new();
+        for entry in fs::read_dir(self.root.join("runs"))? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.extension().and_then(|v| v.to_str()) != Some("json") {
+                continue;
+            }
+            if !entry.file_type()?.is_file() || runs.len() >= 10_000 {
+                bail!("unsafe run entry or run inventory exceeds 10000 files");
+            }
+            let run: crate::domain::Run = Self::read(&path)?;
+            if run.schema_version != 1
+                || !crate::domain::valid_id(&run.id)
+                || path.file_stem().and_then(|v| v.to_str()) != Some(&run.id)
+                || run.updated_unix < run.created_unix
+            {
+                bail!("invalid stored run: {}", path.display());
+            }
+            runs.push(run);
+        }
+        runs.sort_by(|a, b| a.id.cmp(&b.id));
+        Ok(runs)
+    }
+
     pub fn init(path: &Path) -> Result<Self> {
         fs::create_dir_all(path)?;
         let root = fs::canonicalize(path)?;
