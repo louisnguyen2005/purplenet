@@ -1,6 +1,6 @@
 # Implementation status
 
-As of 17 November 2026, PurpleNet has a working local mock slice:
+As of 19 November 2026, PurpleNet has a working local mock slice:
 
 - Rust workspace with a core library and CLI.
 - Versioned scope, approval, scenario, run, and synthetic event types.
@@ -8,6 +8,7 @@ As of 17 November 2026, PurpleNet has a working local mock slice:
 - Local atomic JSON run storage and a hash-linked audit log with verification command.
 - Data-only mock event generation. No network traffic or endpoint actions.
 - A proposed libvirt isolated-network configuration for `10.77.0.0/24`, not yet deployed.
+- A versioned [threat model](THREAT_MODEL.md) covering implemented and planned trust boundaries, misuse cases, and live-use gates.
 
 The demo is intentionally not a release gate. It uses a generated example approval, a documentation IP range, and local files. It has no authenticated identity, external approval service, transactional database, independent telemetry connector, cleanup/recovery workflow, or signed scenario packs. The audit chain is not externally anchored, so a writer with full state access can forge a new chain.
 
